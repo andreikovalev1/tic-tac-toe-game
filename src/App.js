@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import ReactConfetti from 'react-confetti';
+import useWindowSize from 'react-use/lib/useWindowSize';
 
 function Square ({value, onSquareClick}) {
   return (
@@ -69,15 +71,40 @@ function calculateWinner (squares) {
   return null;
 }
 
+function ConfettiAnimation () {
+  const {width, height} = useWindowSize();
+
+  return (
+    <ReactConfetti
+      width={width}
+      height={height}
+      numberOfPieces={300} 
+      recycle={false}
+      gravity={0.1}
+      initialVelocityX={5}
+      initialVelocityY={10}
+      style={{ position: 'fixed', top: 0, left: 0, zIndex: 9999 }} 
+    />
+  );
+}
+
 export default function Game() {
 
   const [history, setHistory] = useState([Array(9).fill(null)]);
   const [currentMove, setCurrentMove] = useState(0);
   const currentSquares = history[currentMove];
   const xIsNext = currentMove % 2 === 0;
+  const [isConfettiActive, setIsConfettiActive] = useState(false);
 
   const winner = calculateWinner(currentSquares);
   let status;
+  useEffect(() => {
+    if(winner) {
+      setIsConfettiActive(true);
+      const timer = setTimeout(() => setIsConfettiActive(false), 5000);
+      return (() => clearTimeout(timer));
+    }
+  }, [winner]);
   if(winner) {
     status = "Winner: " + winner;
   } 
@@ -91,10 +118,12 @@ export default function Game() {
     const nextHistory = [...history.slice(0, currentMove + 1), nextSquares]
     setHistory(nextHistory);
     setCurrentMove(nextHistory.length - 1);
+    setIsConfettiActive(false);
   }
 
   function jumpTo (nextMove) {
     setCurrentMove(nextMove);
+    setIsConfettiActive(false);
   }
 
   const moves = history.map((squares, move) => {
@@ -118,6 +147,7 @@ export default function Game() {
   return(
     <div className="game-wrapper">
       <div className="overal-status">{status}</div>
+      {isConfettiActive && <ConfettiAnimation />}
       <div className="game">
       <div className="game-board">
         <Board xIsNext={xIsNext} squares={currentSquares} onPlay={handlePlay} />
